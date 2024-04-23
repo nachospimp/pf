@@ -23,7 +23,7 @@ importlib.reload(capm16)
 
 
 # create offline instances of pca_model 
-notional = 10 # in mn USD 
+notional = 15 # in mn USD 
 universe = ['^SPX', '^IXIC', '^MXX', '^STOXX', '^GDAXI', '^FCHI', '^VIX',\
             'XLK', 'XLF', 'XLV', 'XLP', 'XLY', 'XLE', 'XLI', 'XLC', 'XLU',\
             'SPY', 'EWW',\
@@ -31,8 +31,8 @@ universe = ['^SPX', '^IXIC', '^MXX', '^STOXX', '^GDAXI', '^FCHI', '^VIX',\
             'AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOG', 'META', 'NFLX',\
             'BRK-B', 'JPM', 'V', 'MA', 'BAC', 'MS', 'GS', 'BLK',\
             'BTC-USD',\
-            'VFH', 'VHT', 'VGI', 'VTI', 'VOO']
-rics = random.sample(universe, 5)
+            'VFH', 'VHT', 'VGT', 'VTI', 'VOO']
+rics = random.sample(universe, 8)
 
 
 # rics = ['^MXX', '^SPX', 'XLK', 'XLF', 'XLV', 'XLP', 'XLY', 'XLE', 'XLI']
@@ -54,6 +54,7 @@ mtx_correl = np.corrcoef(mtx, rowvar=False)
 # min-var with eigenvectors
 eigenvalues, eigenvectors = np.linalg.eigh(mtx_var_covar)
 min_var_vector = eigenvectors[:,0]
+min_var_vector = notional * min_var_vector / sum(abs(min_var_vector))
 
 # unit test for variance function 
 variance_1 = np.matmul(np.transpose(min_var_vector), np.matmul(mtx_var_covar, min_var_vector))
@@ -75,12 +76,15 @@ l2_norm = [{"type": "eq", "fun": lambda x: sum(x**2) - 1}] # unitary in norm L2
 l1_norm = [{"type": "eq", "fun": lambda x: sum(abs(x)) - 1}] # unitary in norm L1
 optimal_result = op.minimize(fun=portfolio_variance, x0=x0,\
                               args=(mtx_var_covar),\
-                              constraints=l2_norm)
+                              constraints=l1_norm)
 optimize_vector = optimal_result.x
+optimize_vector = notional * optimize_vector/ sum(abs(optimize_vector))
 variance_2 = optimal_result.fun
 
 df_weights = pd.DataFrame()
 df_weights['rics'] = rics
-df_weights['min_var_vector'] = min_var_vector
-df_weights['optimize_vector'] = optimize_vector
+df_weights['l2'] = min_var_vector
+df_weights['l1'] = optimize_vector
+df_weights['default'] = x0
+
 
